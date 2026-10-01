@@ -1,0 +1,42 @@
+name: testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ${{ matrix.so }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        so: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # O juiz nao e outro ponto flutuante. Todo double e exatamente uma fracao
+      # com denominador potencia de dois, entao a soma de uma lista deles tem um
+      # valor EXATO que cabe num BigInteger, e esse valor arredondado uma vez so
+      # e o que a soma deveria ter dado. O erro e medido em casas na ultima
+      # posicao, que e deterministico e da o mesmo em toda maquina.
+      #
+      # Para correlacao e regressao o juiz sao as invariantes: os residuos somam
+      # zero e sao ortogonais ao previsor, a reta passa pelo centro de massa, o
+      # R2 e o quadrado do Pearson. Mais o quarteto de Anscombe, publicado em
+      # 1973.
+      - name: testes
+        run: dotnet test testes/Estatistica.Testes/Estatistica.Testes.csproj -c Release --nologo -v q
+
+      # As medidas rodam para REGISTRAR numeros. Nao ha asseveracao de tempo.
+      - name: onde a variancia ingenua muda de sinal
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release --nologo -- cancelamento
+
+      - name: o erro de cada soma, em casas na ultima posicao
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release --nologo -- somas
